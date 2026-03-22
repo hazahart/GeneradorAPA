@@ -2,15 +2,41 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from tkcalendar import DateEntry
 from datetime import datetime
+import threading
+import urllib.request
+import webbrowser
+import ctypes
 from main import obtener_metadatos, generar_cita_apa 
+
+# --- ID de Aplicación para la barra de tareas de Windows ---
+try:
+    myappid = 'gvteam.generadorapa.app.1' 
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+except Exception:
+    pass
 
 class CreadorAPA(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.title("Generador de Citas APA 7 - GVTeam")
+        # --- CONFIGURACIÓN PRINCIPAL Y VERSIÓN ---
+        self.version_actual = "1.0.0"
         
-        # --- CENTRAR VENTANA PRINCIPAL EN LA PANTALLA ---
+        # AQUÍ PONDRÁS TUS LINKS DE GITHUB CUANDO SUBAS EL PROYECTO
+        # Link a un archivo de texto crudo que solo dirá "1.0.1"
+        self.url_version = "https://raw.githubusercontent.com/hazahart/GeneradorAPA/main/version.txt"
+        # Link a donde la gente puede descargar el nuevo .exe
+        self.url_descarga = "https://github.com/hazahart/GeneradorAPA/releases/latest"
+
+        self.title(f"Generador de Citas APA - GVTeam (v{self.version_actual})")
+        
+        # --- ÍCONO DE LA APLICACIÓN ---
+        try:
+            self.iconbitmap('icono.ico') 
+        except Exception:
+            pass 
+            
+        # --- CENTRAR VENTANA PRINCIPAL ---
         ancho_ventana = 750
         alto_ventana = 780
         ancho_pantalla = self.winfo_screenwidth()
@@ -27,36 +53,82 @@ class CreadorAPA(tk.Tk):
         self.var_fecha = tk.StringVar()
         self.var_titulo = tk.StringVar()
         self.var_sitio = tk.StringVar()
-        
-        # Variables exclusivas de revistas
         self.var_revista = tk.StringVar()
         self.var_volumen = tk.StringVar()
         self.var_numero = tk.StringVar()
         self.var_paginas = tk.StringVar()
-        
         self.var_recuperacion = tk.BooleanVar(value=False)
 
         self.crear_widgets()
         self.crear_menu() 
+        
+        # Buscar actualizaciones en segundo plano al iniciar (modo silencioso)
+        self.buscar_actualizaciones(silencioso=True)
 
     def crear_menu(self):
-        """Crea la barra de menú superior"""
         barra_menu = tk.Menu(self)
         menu_ayuda = tk.Menu(barra_menu, tearoff=0)
+        
+        # Nuevas opciones en el menú
+        menu_ayuda.add_command(label="Buscar actualizaciones...", command=lambda: self.buscar_actualizaciones(silencioso=False))
+        menu_ayuda.add_separator()
         menu_ayuda.add_command(label="Acerca de...", command=self.mostrar_acerca_de)
+        
         barra_menu.add_cascade(label="Ayuda", menu=menu_ayuda)
         self.config(menu=barra_menu)
 
+    # ==========================================
+    # SISTEMA DE ACTUALIZACIONES
+    # ==========================================
+    def buscar_actualizaciones(self, silencioso=True):
+        """Busca actualizaciones en internet usando un hilo secundario para no congelar la app"""
+        def tarea_de_red():
+            try:
+                # Simulamos un navegador para que GitHub no bloquee la petición
+                req = urllib.request.Request(self.url_version, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=5) as response:
+                    version_remota = response.read().decode('utf-8').strip()
+
+                # Si la versión remota es mayor (ej. 1.0.1 > 1.0.0)
+                if version_remota > self.version_actual:
+                    self.after(0, lambda: self.mostrar_dialogo_actualizacion(version_remota))
+                elif not silencioso:
+                    self.after(0, lambda: messagebox.showinfo("Actualizaciones", f"¡Estás utilizando la última versión! (v{self.version_actual})"))
+            
+            except Exception as e:
+                if not silencioso:
+                    self.after(0, lambda: messagebox.showerror("Error de conexión", "No se pudo conectar al servidor para buscar actualizaciones.\n\nVerifica tu conexión a internet."))
+
+        # Iniciamos el hilo
+        threading.Thread(target=tarea_de_red, daemon=True).start()
+
+    def mostrar_dialogo_actualizacion(self, version_nueva):
+        """Muestra el Pop-Up preguntando si desean descargar"""
+        respuesta = messagebox.askyesno(
+            "¡Actualización Disponible!",
+            f"Se ha encontrado una nueva versión del Generador APA.\n\n"
+            f"Versión actual: {self.version_actual}\n"
+            f"Nueva versión: {version_nueva}\n\n"
+            f"¿Deseas ir a la página de descarga?"
+        )
+        if respuesta:
+            webbrowser.open(self.url_descarga)
+
+    # ==========================================
+    # ACERCA DE...
+    # ==========================================
     def mostrar_acerca_de(self):
-        """Muestra una ventana modal centrada respecto a la app principal"""
         modal = tk.Toplevel(self)
         modal.title("Acerca de...")
         
-        # --- CENTRAR MODAL RESPECTO A LA VENTANA PRINCIPAL ---
+        try:
+            modal.iconbitmap('icono.ico')
+        except Exception:
+            pass
+
         ancho_modal = 420
         alto_modal = 350
         
-        # Actualizamos tareas para tener las dimensiones exactas de la ventana principal
         self.update_idletasks() 
         x_principal = self.winfo_x()
         y_principal = self.winfo_y()
@@ -69,13 +141,11 @@ class CreadorAPA(tk.Tk):
         modal.geometry(f"{ancho_modal}x{alto_modal}+{pos_x}+{pos_y}")
         modal.resizable(False, False)
         
-        # Bloquear la ventana principal
         modal.transient(self) 
         modal.grab_set()
 
-        # --- Contenido del Modal ---
-        ttk.Label(modal, text="Generador de Citas APA 7", font=("Arial", 14, "bold")).pack(pady=(20, 5))
-        ttk.Label(modal, text="Versión 1.0.0", font=("Arial", 10, "italic")).pack(pady=(0, 15))
+        ttk.Label(modal, text="Generador de Citas APA", font=("Arial", 14, "bold")).pack(pady=(20, 5))
+        ttk.Label(modal, text=f"Versión {self.version_actual}", font=("Arial", 10, "italic")).pack(pady=(0, 15))
 
         info_frame = ttk.Frame(modal)
         info_frame.pack(pady=5)
@@ -83,18 +153,15 @@ class CreadorAPA(tk.Tk):
         ttk.Label(info_frame, text="Desarrollado por el Equipo GVTeam:", font=("Arial", 10, "bold"), justify="center").pack(pady=(0, 5))
         ttk.Label(info_frame, text="• Gustavo Ramírez Mireles\n• Victoria Maldonado Patiño", font=("Arial", 10), justify="center").pack(pady=(0, 10))
 
-        ttk.Label(info_frame, text="Ingeniería en Sistemas Computacionales", font=("Arial", 10), justify="center").pack(pady=2)
-        ttk.Label(info_frame, text="Materia: Tópicos Avanzados de Desarrollo Web", font=("Arial", 10), justify="center").pack(pady=2)
-        ttk.Label(info_frame, text="Docente: Oscar Grimaldo Aguayo", font=("Arial", 10), justify="center").pack(pady=2)
-        ttk.Label(info_frame, text="Tecnológico Nacional de México / ITC", font=("Arial", 10, "bold"), justify="center").pack(pady=(5, 2))
-        
         ttk.Label(info_frame, text="Tecnología: Python / Tkinter\nAño: 2026", font=("Arial", 10), justify="center").pack(pady=(15, 0))
 
         btn_cerrar = ttk.Button(modal, text="Aceptar", command=modal.destroy)
         btn_cerrar.pack(side="bottom", pady=15)
 
+    # ==========================================
+    # WIDGETS Y LÓGICA DE EXTRACCIÓN
+    # ==========================================
     def crear_widgets(self):
-        # --- SECCIÓN 1: EXTRACCIÓN ---
         frame_ext = ttk.LabelFrame(self, text=" 1. Extracción Automática ", padding=10)
         frame_ext.pack(fill="x", pady=(0, 15))
 
@@ -105,10 +172,9 @@ class CreadorAPA(tk.Tk):
         self.entry_url = ttk.Entry(frame_url, width=50, font=("Arial", 10))
         self.entry_url.pack(side="left", fill="x", expand=True, padx=(10, 10))
 
-        ttk.Button(frame_url, text="📁 Buscar PDF", command=self.seleccionar_archivo).pack(side="left", padx=(0, 5))
-        ttk.Button(frame_url, text="🔍 Extraer", command=self.procesar_extraccion).pack(side="left")
+        ttk.Button(frame_url, text="Buscar PDF (local)", command=self.seleccionar_archivo).pack(side="left", padx=(0, 5))
+        ttk.Button(frame_url, text="Extraer cita", command=self.procesar_extraccion).pack(side="left")
 
-        # --- SECCIÓN 2: TIPO DE FUENTE ---
         frame_tipo = tk.Frame(self)
         frame_tipo.pack(fill="x", pady=(0, 10))
         ttk.Label(frame_tipo, text="Selecciona el Tipo de Fuente APA:", font=("Arial", 10, "bold")).pack(side="left", padx=(0, 10))
@@ -117,26 +183,21 @@ class CreadorAPA(tk.Tk):
         combo_tipo = ttk.Combobox(frame_tipo, textvariable=self.var_tipo_fuente, values=tipos_fuente, state="readonly", width=35)
         combo_tipo.pack(side="left")
 
-        # --- SECCIÓN 3: CAMPOS EDITABLES ---
         frame_datos = ttk.LabelFrame(self, text=" 2. Datos de la Cita (Corrige o añade si falta algo) ", padding=10)
         frame_datos.pack(fill="x", pady=(0, 15))
 
-        # Fila 0
         ttk.Label(frame_datos, text="Autor(es):").grid(row=0, column=0, sticky="w", pady=2)
         ttk.Entry(frame_datos, textvariable=self.var_autor, width=40).grid(row=0, column=1, sticky="w", pady=2, padx=5)
 
         ttk.Label(frame_datos, text="Año/Fecha:").grid(row=0, column=2, sticky="w", pady=2, padx=(15, 5))
         ttk.Entry(frame_datos, textvariable=self.var_fecha, width=15).grid(row=0, column=3, sticky="w", pady=2)
 
-        # Fila 1
         ttk.Label(frame_datos, text="Título:").grid(row=1, column=0, sticky="w", pady=2)
         ttk.Entry(frame_datos, textvariable=self.var_titulo, width=80).grid(row=1, column=1, columnspan=3, sticky="w", pady=2, padx=5)
 
-        # Fila 2
         ttk.Label(frame_datos, text="Sitio / Editorial:").grid(row=2, column=0, sticky="w", pady=2)
         ttk.Entry(frame_datos, textvariable=self.var_sitio, width=40).grid(row=2, column=1, sticky="w", pady=2, padx=5)
         
-        # Fila 3 (Campos de Revista)
         ttk.Label(frame_datos, text="Nombre Revista:").grid(row=3, column=0, sticky="w", pady=2)
         ttk.Entry(frame_datos, textvariable=self.var_revista, width=40).grid(row=3, column=1, sticky="w", pady=2, padx=5)
         
@@ -150,7 +211,6 @@ class CreadorAPA(tk.Tk):
         ttk.Label(frame_rev_nums, text="Págs:").pack(side="left", padx=(5,0))
         ttk.Entry(frame_rev_nums, textvariable=self.var_paginas, width=10).pack(side="left", padx=2)
 
-        # Fila 4 (Recuperación)
         chk_recup = ttk.Checkbutton(frame_datos, text="Añadir fecha de recuperación", variable=self.var_recuperacion, command=self.toggle_calendario)
         chk_recup.grid(row=4, column=0, columnspan=2, sticky="w", pady=(15, 2))
 
@@ -160,8 +220,7 @@ class CreadorAPA(tk.Tk):
         self.btn_hoy = ttk.Button(frame_datos, text="Hoy", command=self.set_hoy, state="disabled")
         self.btn_hoy.grid(row=4, column=3, sticky="w", pady=(15, 2))
 
-        # --- SECCIÓN 4: GENERACIÓN ---
-        btn_generar = ttk.Button(self, text="✨ Generar Cita APA ✨", command=self.ejecutar_generacion)
+        btn_generar = ttk.Button(self, text="Generar Cita APA", command=self.ejecutar_generacion)
         btn_generar.pack(pady=(10, 15))
 
         lbl_resultado = ttk.Label(self, text="Cita Final (Copia y pega en tu documento):", font=("Arial", 10, "bold"))

@@ -19,7 +19,7 @@ class CreadorAPA(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.version_actual = "1.0.1"
+        self.version_actual = "1.0.2"
         self.url_version = "https://raw.githubusercontent.com/hazahart/GeneradorAPA/main/version.txt"
         self.url_descarga = "https://github.com/hazahart/GeneradorAPA/releases/latest"
 

@@ -30,8 +30,11 @@ class CreadorAPA(tk.Tk):
         except Exception:
             pass 
             
-        ancho_ventana = 640
+        ancho_ventana = 720
         alto_ventana = 480
+        
+        self.minsize(640, 550)
+        
         ancho_pantalla = self.winfo_screenwidth()
         alto_pantalla = self.winfo_screenheight()
         pos_x = int((ancho_pantalla / 2) - (ancho_ventana / 2))
@@ -73,7 +76,6 @@ class CreadorAPA(tk.Tk):
                 req = urllib.request.Request(url_fresca, headers={'User-Agent': 'Mozilla/5.0'})
                 with urllib.request.urlopen(req, timeout=5) as response:
                     version_remota = response.read().decode('utf-8').strip()
-                    print(version_remota)
 
                 v_remota_lista = [int(n) for n in version_remota.split('.') if n.isdigit()]
                 v_actual_lista = [int(n) for n in self.version_actual.split('.') if n.isdigit()]
@@ -148,38 +150,46 @@ class CreadorAPA(tk.Tk):
         frame_url = tk.Frame(frame_ext)
         frame_url.pack(fill="x", pady=5)
         
-        ttk.Label(frame_url, text="URL o PDF local:").pack(side="left")
-        self.entry_url = ttk.Entry(frame_url, width=50, font=("Arial", 10))
-        self.entry_url.pack(side="left", fill="x", expand=True, padx=(10, 10))
+        frame_url.columnconfigure(1, weight=1)
 
-        ttk.Button(frame_url, text="Seleccionar PDF", command=self.seleccionar_archivo).pack(side="left", padx=(0, 5))
-        ttk.Button(frame_url, text="Extraer cita", command=self.procesar_extraccion).pack(side="left")
+        ttk.Label(frame_url, text="URL o PDF local:").grid(row=0, column=0, sticky="w", padx=(0, 5))
+        self.entry_url = ttk.Entry(frame_url, font=("Arial", 10))
+        self.entry_url.grid(row=0, column=1, sticky="ew", padx=(5, 10))
+
+        ttk.Button(frame_url, text="Seleccionar PDF", command=self.seleccionar_archivo).grid(row=0, column=2, padx=(0, 5))
+        ttk.Button(frame_url, text="Extraer cita", command=self.procesar_extraccion).grid(row=0, column=3)
 
         frame_tipo = tk.Frame(self)
         frame_tipo.pack(fill="x", pady=(0, 10))
-        ttk.Label(frame_tipo, text="Selecciona el Tipo de Fuente APA:", font=("Arial", 10, "bold")).pack(side="left", padx=(0, 10))
+        
+        frame_tipo.columnconfigure(1, weight=1)
+        
+        ttk.Label(frame_tipo, text="Selecciona el Tipo de Fuente APA:", font=("Arial", 10, "bold")).grid(row=0, column=0, sticky="w", padx=(0, 10))
         
         tipos_fuente = ["Página Web / Documento Genérico", "Revista Académica (Journal)", "Noticia / Periódico", "Video / Multimedia"]
-        combo_tipo = ttk.Combobox(frame_tipo, textvariable=self.var_tipo_fuente, values=tipos_fuente, state="readonly", width=35)
-        combo_tipo.pack(side="left")
+        combo_tipo = ttk.Combobox(frame_tipo, textvariable=self.var_tipo_fuente, values=tipos_fuente, state="readonly")
+        combo_tipo.grid(row=0, column=1, sticky="ew")
 
         frame_datos = ttk.LabelFrame(self, text=" 2. Datos de la Cita (Corrige o añade si falta algo) ", padding=10)
         frame_datos.pack(fill="x", pady=(0, 15))
 
+        frame_datos.columnconfigure(1, weight=1)
+        frame_datos.columnconfigure(3, weight=1)
+
         ttk.Label(frame_datos, text="Autor(es):").grid(row=0, column=0, sticky="w", pady=2)
-        ttk.Entry(frame_datos, textvariable=self.var_autor, width=40).grid(row=0, column=1, sticky="w", pady=2, padx=5)
+        ttk.Entry(frame_datos, textvariable=self.var_autor).grid(row=0, column=1, sticky="ew", pady=2, padx=5)
 
         ttk.Label(frame_datos, text="Año/Fecha:").grid(row=0, column=2, sticky="w", pady=2, padx=(15, 5))
-        ttk.Entry(frame_datos, textvariable=self.var_fecha, width=15).grid(row=0, column=3, sticky="w", pady=2)
+        ttk.Entry(frame_datos, textvariable=self.var_fecha, width=15).grid(row=0, column=3, sticky="ew", pady=2)
 
         ttk.Label(frame_datos, text="Título:").grid(row=1, column=0, sticky="w", pady=2)
-        ttk.Entry(frame_datos, textvariable=self.var_titulo, width=80).grid(row=1, column=1, columnspan=3, sticky="w", pady=2, padx=5)
+        ttk.Entry(frame_datos, textvariable=self.var_titulo).grid(row=1, column=1, columnspan=3, sticky="ew", pady=2, padx=5)
 
         ttk.Label(frame_datos, text="Sitio / Editorial:").grid(row=2, column=0, sticky="w", pady=2)
-        ttk.Entry(frame_datos, textvariable=self.var_sitio, width=40).grid(row=2, column=1, sticky="w", pady=2, padx=5)
+        ttk.Entry(frame_datos, textvariable=self.var_sitio).grid(row=2, column=1, sticky="ew", pady=2, padx=5)
         
         ttk.Label(frame_datos, text="Nombre Revista:").grid(row=3, column=0, sticky="w", pady=2)
-        ttk.Entry(frame_datos, textvariable=self.var_revista, width=40).grid(row=3, column=1, sticky="w", pady=2, padx=5)
+        ttk.Entry(frame_datos, textvariable=self.var_revista).grid(row=3, column=1, sticky="ew", pady=2, padx=5)
         
         frame_rev_nums = tk.Frame(frame_datos)
         frame_rev_nums.grid(row=3, column=2, columnspan=2, sticky="w", pady=2, padx=(15, 0))
@@ -195,7 +205,7 @@ class CreadorAPA(tk.Tk):
         chk_recup.grid(row=4, column=0, columnspan=2, sticky="w", pady=(15, 2))
 
         self.cal_recuperacion = DateEntry(frame_datos, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='dd/mm/yyyy', state="disabled")
-        self.cal_recuperacion.grid(row=4, column=2, sticky="w", pady=(15, 2), padx=(15, 5))
+        self.cal_recuperacion.grid(row=4, column=2, sticky="ew", pady=(15, 2), padx=(15, 5))
 
         self.btn_hoy = ttk.Button(frame_datos, text="Hoy", command=self.set_hoy, state="disabled")
         self.btn_hoy.grid(row=4, column=3, sticky="w", pady=(15, 2))
@@ -203,7 +213,7 @@ class CreadorAPA(tk.Tk):
         btn_generar = ttk.Button(self, text="Generar Cita APA", command=self.ejecutar_generacion)
         btn_generar.pack(pady=(10, 15))
 
-        lbl_resultado = ttk.Label(self, text="Cita Final:", font=("Arial", 10, "bold"))
+        lbl_resultado = ttk.Label(self, text="Cita Final (Copia y pega en tu documento):", font=("Arial", 10, "bold"))
         lbl_resultado.pack(anchor="w")
 
         self.text_resultado = tk.Text(self, height=6, width=70, font=("Arial", 11), wrap="word", state="disabled")

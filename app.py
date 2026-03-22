@@ -136,11 +136,6 @@ class CreadorAPA(tk.Tk):
         ttk.Label(info_frame, text="Desarrollado por el Equipo GVTeam:", font=("Arial", 10, "bold"), justify="center").pack(pady=(0, 5))
         ttk.Label(info_frame, text="• Gustavo Ramírez Mireles\n• Victoria Maldonado Patiño", font=("Arial", 10), justify="center").pack(pady=(0, 10))
 
-        ttk.Label(info_frame, text="Ingeniería en Sistemas Computacionales", font=("Arial", 10), justify="center").pack(pady=2)
-        ttk.Label(info_frame, text="Materia: Tópicos Avanzados de Desarrollo Web", font=("Arial", 10), justify="center").pack(pady=2)
-        ttk.Label(info_frame, text="Docente: Oscar Grimaldo Aguayo", font=("Arial", 10), justify="center").pack(pady=2)
-        ttk.Label(info_frame, text="Tecnológico Nacional de México / ITC", font=("Arial", 10, "bold"), justify="center").pack(pady=(5, 2))
-        
         ttk.Label(info_frame, text="Tecnología: Python / Tkinter\nAño: 2026", font=("Arial", 10), justify="center").pack(pady=(15, 0))
 
         btn_cerrar = ttk.Button(modal, text="Aceptar", command=modal.destroy)

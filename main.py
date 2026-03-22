@@ -51,7 +51,6 @@ def extraer_metadatos_pdf(doc, origen):
             match_fecha = re.search(r'\b(20\d{2})\b', texto_pag1)
             if match_fecha: fecha = match_fecha.group(1)
 
-    # Autodetección básica para PDFs
     tipo_fuente = "Página Web / Documento Genérico"
     if "dialnet" in origen.lower() or "redalyc" in origen.lower():
         tipo_fuente = "Revista Académica (Journal)"
@@ -69,8 +68,7 @@ def obtener_metadatos(entrada):
             try:
                 doc = fitz.open(entrada)
                 return extraer_metadatos_pdf(doc, entrada)
-            except Exception as e:
-                print(f"Error al leer PDF local: {e}")
+            except Exception:
                 return None
         return None
 
@@ -92,7 +90,6 @@ def obtener_metadatos(entrada):
         'tipo_fuente_sugerido': "Página Web / Documento Genérico"
     }
 
-    # Título
     og_title = soup.find('meta', property='og:title')
     metadatos['titulo'] = og_title['content'] if og_title and og_title.get('content') else (soup.find('title').text.strip() if soup.find('title') else "Sin título")
     if metadatos['titulo']:
@@ -101,7 +98,6 @@ def obtener_metadatos(entrada):
                 metadatos['titulo'] = metadatos['titulo'].split(sep)[0].strip()
                 break
 
-    # Revista Científica
     meta_journal = soup.find('meta', attrs={'name': 'citation_journal_title'})
     if meta_journal: metadatos['revista'] = meta_journal.get('content', '')
     meta_vol = soup.find('meta', attrs={'name': 'citation_volume'})
@@ -114,7 +110,6 @@ def obtener_metadatos(entrada):
         metadatos['paginas'] = meta_firstpage.get('content', '')
         if meta_lastpage: metadatos['paginas'] += f"-{meta_lastpage.get('content', '')}"
 
-    # Autor y Sitio web tradicionales
     meta_author = soup.find('meta', attrs={'name': 'author'}) or soup.find('meta', attrs={'name': 'citation_author'})
     og_author = soup.find('meta', property='article:author')
     if meta_author and es_autor_valido(meta_author.get('content')): metadatos['autor'] = meta_author['content'].strip()
@@ -123,7 +118,6 @@ def obtener_metadatos(entrada):
     og_site = soup.find('meta', property='og:site_name')
     metadatos['sitio'] = og_site['content'] if og_site and og_site.get('content') else urlparse(entrada).netloc.replace('www.', '')
 
-    # --- NUEVO: EXTRACCIÓN ESPECÍFICA PARA YOUTUBE Y VIDEOS (itemprop) ---
     meta_yt_author = soup.find(attrs={'itemprop': 'author'})
     if meta_yt_author and not metadatos['autor']:
         name_tag = meta_yt_author.find(attrs={'itemprop': 'name'})
@@ -139,7 +133,6 @@ def obtener_metadatos(entrada):
         m = re.search(r'\d{4}', meta_yt_date['content'])
         if m: metadatos['fecha'] = m.group(0)
 
-    # Fecha y Búsqueda en JSON-LD (Múltiples Autores)
     scripts_json = soup.find_all('script', type='application/ld+json')
     for script in scripts_json:
         try:
@@ -170,7 +163,6 @@ def obtener_metadatos(entrada):
             m = re.search(r'\d{4}', og_pub['content'])
             if m: metadatos['fecha'] = m.group(0)
 
-    # --- NUEVO: MOTOR DE AUTODETECCIÓN DE FUENTE ---
     url_lower = entrada.lower()
     og_type = soup.find('meta', property='og:type')
     og_type_content = og_type['content'].lower() if og_type and og_type.get('content') else ""
@@ -225,25 +217,25 @@ def generar_cita_apa(datos, tipo_fuente, fecha_recuperacion=""):
             if paginas: cita.append((f", {paginas}. ", "normal"))
             else: cita.append((". ", "normal"))
         else:
-             cita.append((". ", "normal"))
+            cita.append((". ", "normal"))
 
     elif tipo_fuente == "Video / Multimedia":
         if not autor:
-             cita.append((f"{titulo} ", "italic"))
-             cita.append(("[Video]. ", "normal"))
-             cita.append((f"({fecha}). ", "normal"))
+            cita.append((f"{titulo} ", "italic"))
+            cita.append(("[Video]. ", "normal"))
+            cita.append((f"({fecha}). ", "normal"))
         else:
-             cita.append((f"{titulo} ", "italic"))
-             cita.append(("[Video]. ", "normal"))
+            cita.append((f"{titulo} ", "italic"))
+            cita.append(("[Video]. ", "normal"))
         
         if sitio: cita.append((f"{sitio}. ", "normal"))
 
     elif tipo_fuente == "Noticia / Periódico":
         if not autor:
-             cita.append((f"{titulo}. ", "italic"))
-             cita.append((f"({fecha}). ", "normal"))
+            cita.append((f"{titulo}. ", "italic"))
+            cita.append((f"({fecha}). ", "normal"))
         else:
-             cita.append((f"{titulo}. ", "italic"))
+            cita.append((f"{titulo}. ", "italic"))
         
         if sitio: cita.append((f"{sitio}. ", "normal"))
 

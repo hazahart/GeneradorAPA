@@ -6,9 +6,9 @@ import threading
 import urllib.request
 import webbrowser
 import ctypes
+import time
 from main import obtener_metadatos, generar_cita_apa 
 
-# --- ID de Aplicación para la barra de tareas de Windows ---
 try:
     myappid = 'gvteam.generadorapa.app.1' 
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
@@ -19,24 +19,17 @@ class CreadorAPA(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        # --- CONFIGURACIÓN PRINCIPAL Y VERSIÓN ---
         self.version_actual = "1.0.0"
-        
-        # AQUÍ PONDRÁS TUS LINKS DE GITHUB CUANDO SUBAS EL PROYECTO
-        # Link a un archivo de texto crudo que solo dirá "1.0.1"
         self.url_version = "https://raw.githubusercontent.com/hazahart/GeneradorAPA/main/version.txt"
-        # Link a donde la gente puede descargar el nuevo .exe
         self.url_descarga = "https://github.com/hazahart/GeneradorAPA/releases/latest"
 
         self.title(f"Generador de Citas APA - GVTeam (v{self.version_actual})")
         
-        # --- ÍCONO DE LA APLICACIÓN ---
         try:
             self.iconbitmap('icono.ico') 
         except Exception:
             pass 
             
-        # --- CENTRAR VENTANA PRINCIPAL ---
         ancho_ventana = 750
         alto_ventana = 780
         ancho_pantalla = self.winfo_screenwidth()
@@ -47,7 +40,6 @@ class CreadorAPA(tk.Tk):
         
         self.configure(padx=20, pady=20)
 
-        # Variables de control
         self.var_tipo_fuente = tk.StringVar(value="Página Web / Documento Genérico")
         self.var_autor = tk.StringVar()
         self.var_fecha = tk.StringVar()
@@ -61,15 +53,12 @@ class CreadorAPA(tk.Tk):
 
         self.crear_widgets()
         self.crear_menu() 
-        
-        # Buscar actualizaciones en segundo plano al iniciar (modo silencioso)
         self.buscar_actualizaciones(silencioso=True)
 
     def crear_menu(self):
         barra_menu = tk.Menu(self)
         menu_ayuda = tk.Menu(barra_menu, tearoff=0)
         
-        # Nuevas opciones en el menú
         menu_ayuda.add_command(label="Buscar actualizaciones...", command=lambda: self.buscar_actualizaciones(silencioso=False))
         menu_ayuda.add_separator()
         menu_ayuda.add_command(label="Acerca de...", command=self.mostrar_acerca_de)
@@ -77,33 +66,30 @@ class CreadorAPA(tk.Tk):
         barra_menu.add_cascade(label="Ayuda", menu=menu_ayuda)
         self.config(menu=barra_menu)
 
-    # ==========================================
-    # SISTEMA DE ACTUALIZACIONES
-    # ==========================================
     def buscar_actualizaciones(self, silencioso=True):
-        """Busca actualizaciones en internet usando un hilo secundario para no congelar la app"""
         def tarea_de_red():
             try:
-                # Simulamos un navegador para que GitHub no bloquee la petición
-                req = urllib.request.Request(self.url_version, headers={'User-Agent': 'Mozilla/5.0'})
+                url_fresca = f"{self.url_version}?t={int(time.time())}"
+                req = urllib.request.Request(url_fresca, headers={'User-Agent': 'Mozilla/5.0'})
                 with urllib.request.urlopen(req, timeout=5) as response:
                     version_remota = response.read().decode('utf-8').strip()
+                    print(version_remota)
 
-                # Si la versión remota es mayor (ej. 1.0.1 > 1.0.0)
-                if version_remota > self.version_actual:
+                v_remota_lista = [int(n) for n in version_remota.split('.') if n.isdigit()]
+                v_actual_lista = [int(n) for n in self.version_actual.split('.') if n.isdigit()]
+
+                if v_remota_lista > v_actual_lista:
                     self.after(0, lambda: self.mostrar_dialogo_actualizacion(version_remota))
                 elif not silencioso:
-                    self.after(0, lambda: messagebox.showinfo("Actualizaciones", f"¡Estás utilizando la última versión! (v{self.version_actual})"))
+                    self.after(0, lambda: messagebox.showinfo("Actualizaciones", f"¡Estás utilizando la última versión!\n\nVersión instalada: v{self.version_actual}\nVersión en el servidor: v{version_remota}"))
             
-            except Exception as e:
+            except Exception:
                 if not silencioso:
-                    self.after(0, lambda: messagebox.showerror("Error de conexión", "No se pudo conectar al servidor para buscar actualizaciones.\n\nVerifica tu conexión a internet."))
+                    self.after(0, lambda: messagebox.showerror("Error de conexión", "No se pudo conectar al servidor o el archivo version.txt tiene un formato incorrecto.\n\nVerifica tu conexión a internet."))
 
-        # Iniciamos el hilo
         threading.Thread(target=tarea_de_red, daemon=True).start()
 
     def mostrar_dialogo_actualizacion(self, version_nueva):
-        """Muestra el Pop-Up preguntando si desean descargar"""
         respuesta = messagebox.askyesno(
             "¡Actualización Disponible!",
             f"Se ha encontrado una nueva versión del Generador APA.\n\n"
@@ -114,9 +100,6 @@ class CreadorAPA(tk.Tk):
         if respuesta:
             webbrowser.open(self.url_descarga)
 
-    # ==========================================
-    # ACERCA DE...
-    # ==========================================
     def mostrar_acerca_de(self):
         modal = tk.Toplevel(self)
         modal.title("Acerca de...")
@@ -153,14 +136,16 @@ class CreadorAPA(tk.Tk):
         ttk.Label(info_frame, text="Desarrollado por el Equipo GVTeam:", font=("Arial", 10, "bold"), justify="center").pack(pady=(0, 5))
         ttk.Label(info_frame, text="• Gustavo Ramírez Mireles\n• Victoria Maldonado Patiño", font=("Arial", 10), justify="center").pack(pady=(0, 10))
 
+        ttk.Label(info_frame, text="Ingeniería en Sistemas Computacionales", font=("Arial", 10), justify="center").pack(pady=2)
+        ttk.Label(info_frame, text="Materia: Tópicos Avanzados de Desarrollo Web", font=("Arial", 10), justify="center").pack(pady=2)
+        ttk.Label(info_frame, text="Docente: Oscar Grimaldo Aguayo", font=("Arial", 10), justify="center").pack(pady=2)
+        ttk.Label(info_frame, text="Tecnológico Nacional de México / ITC", font=("Arial", 10, "bold"), justify="center").pack(pady=(5, 2))
+        
         ttk.Label(info_frame, text="Tecnología: Python / Tkinter\nAño: 2026", font=("Arial", 10), justify="center").pack(pady=(15, 0))
 
         btn_cerrar = ttk.Button(modal, text="Aceptar", command=modal.destroy)
         btn_cerrar.pack(side="bottom", pady=15)
 
-    # ==========================================
-    # WIDGETS Y LÓGICA DE EXTRACCIÓN
-    # ==========================================
     def crear_widgets(self):
         frame_ext = ttk.LabelFrame(self, text=" 1. Extracción Automática ", padding=10)
         frame_ext.pack(fill="x", pady=(0, 15))
@@ -172,7 +157,7 @@ class CreadorAPA(tk.Tk):
         self.entry_url = ttk.Entry(frame_url, width=50, font=("Arial", 10))
         self.entry_url.pack(side="left", fill="x", expand=True, padx=(10, 10))
 
-        ttk.Button(frame_url, text="Buscar PDF (local)", command=self.seleccionar_archivo).pack(side="left", padx=(0, 5))
+        ttk.Button(frame_url, text="Seleccionar PDF", command=self.seleccionar_archivo).pack(side="left", padx=(0, 5))
         ttk.Button(frame_url, text="Extraer cita", command=self.procesar_extraccion).pack(side="left")
 
         frame_tipo = tk.Frame(self)
@@ -223,7 +208,7 @@ class CreadorAPA(tk.Tk):
         btn_generar = ttk.Button(self, text="Generar Cita APA", command=self.ejecutar_generacion)
         btn_generar.pack(pady=(10, 15))
 
-        lbl_resultado = ttk.Label(self, text="Cita Final (Copia y pega en tu documento):", font=("Arial", 10, "bold"))
+        lbl_resultado = ttk.Label(self, text="Cita Final:", font=("Arial", 10, "bold"))
         lbl_resultado.pack(anchor="w")
 
         self.text_resultado = tk.Text(self, height=6, width=70, font=("Arial", 11), wrap="word", state="disabled")

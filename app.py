@@ -19,7 +19,7 @@ class CreadorAPA(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.version_actual = "1.0.0"
+        self.version_actual = "1.0.1"
         self.url_version = "https://raw.githubusercontent.com/hazahart/GeneradorAPA/main/version.txt"
         self.url_descarga = "https://github.com/hazahart/GeneradorAPA/releases/latest"
 
@@ -30,8 +30,8 @@ class CreadorAPA(tk.Tk):
         except Exception:
             pass 
             
-        ancho_ventana = 750
-        alto_ventana = 780
+        ancho_ventana = 640
+        alto_ventana = 480
         ancho_pantalla = self.winfo_screenwidth()
         alto_pantalla = self.winfo_screenheight()
         pos_x = int((ancho_pantalla / 2) - (ancho_ventana / 2))

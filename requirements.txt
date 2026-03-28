@@ -1,0 +1,11 @@
+# Interfaz gráfica
+tkcalendar>=1.6.1
+
+# Procesamiento de PDFs (proporciona el módulo 'fitz')
+PyMuPDF>=1.23.0
+
+# Peticiones HTTP con suplantación de huella (impersonate)
+curl-cffi>=0.5.9
+
+# Web scraping y parseo de HTML (proporciona el módulo 'bs4')
+beautifulsoup4>=4.12.0

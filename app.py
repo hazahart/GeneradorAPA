@@ -7,6 +7,8 @@ import urllib.request
 import webbrowser
 import ctypes
 import time
+import json
+import os
 from main import obtener_metadatos, generar_apa 
 
 try:
@@ -59,9 +61,12 @@ class CreadorAPA(tk.Tk):
         self.ultima_ref = []
         self.ultima_cita_p = []
         self.ultima_cita_n = []
+        self.coleccion_referencias = []
+        self.archivo_datos = "coleccion_apa.json"
 
         self.crear_widgets()
         self.crear_menu() 
+        self.cargar_coleccion()
         self.buscar_actualizaciones(silencioso=True)
 
     def crear_menu(self):
@@ -181,13 +186,19 @@ class CreadorAPA(tk.Tk):
         self.btn_hoy.grid(row=4, column=3, sticky="w", pady=(10, 2))
 
         btn_generar = ttk.Button(self, text="Generar APA", command=self.ejecutar_generacion)
-        btn_generar.pack(pady=(5, 10))
+        btn_generar.pack(pady=(5, 5))
 
-        frame_res = tk.Frame(self)
-        frame_res.pack(fill="both", expand=True)
+        self.notebook = ttk.Notebook(self)
+        self.notebook.pack(fill="both", expand=True, pady=(5, 0))
 
-        f_citas = tk.Frame(frame_res)
-        f_citas.pack(fill="x", pady=(0, 5))
+        self.tab_actual = ttk.Frame(self.notebook)
+        self.notebook.add(self.tab_actual, text="Cita Actual")
+
+        self.tab_coleccion = ttk.Frame(self.notebook)
+        self.notebook.add(self.tab_coleccion, text="Colección (0)")
+
+        f_citas = tk.Frame(self.tab_actual)
+        f_citas.pack(fill="x", pady=10, padx=10)
         f_citas.columnconfigure(0, weight=1)
         f_citas.columnconfigure(1, weight=1)
 
@@ -209,26 +220,58 @@ class CreadorAPA(tk.Tk):
         self.text_cn = tk.Text(f_cn, height=2, font=("Arial", 10), wrap="word", state="disabled")
         self.text_cn.pack(fill="x", pady=(2,0))
 
-        f_ref = tk.Frame(frame_res)
-        f_ref.pack(fill="both", expand=True, pady=(5, 0))
+        f_ref = tk.Frame(self.tab_actual)
+        f_ref.pack(fill="both", expand=True, pady=(0, 10), padx=10)
         lbl_ref = tk.Frame(f_ref)
         lbl_ref.pack(fill="x")
         ttk.Label(lbl_ref, text="Referencia Final:", font=("Arial", 9, "bold")).pack(side="left")
+        ttk.Button(lbl_ref, text="➕ Añadir a Colección", command=self.anadir_a_coleccion).pack(side="right", padx=(5,0))
         ttk.Button(lbl_ref, text="📋 Copiar Referencia", command=lambda: self.copiar_texto(self.text_ref, self.ultima_ref)).pack(side="right")
         
         self.text_ref = tk.Text(f_ref, height=4, font=("Arial", 11), wrap="word", state="disabled")
         self.text_ref.pack(fill="both", expand=True, pady=(2, 0))
 
-        for t in [self.text_cp, self.text_cn, self.text_ref]:
-            t.tag_configure("normal", font=("Arial", 11))
-            t.tag_configure("italic", font=("Arial", 11, "italic"))
+        f_col_botones = tk.Frame(self.tab_coleccion)
+        f_col_botones.pack(fill="x", pady=10, padx=10)
+        ttk.Button(f_col_botones, text="🗑️ Vaciar Lista", command=self.vaciar_coleccion).pack(side="left")
+        ttk.Button(f_col_botones, text="📋 Copiar Lista Completa", command=self.copiar_coleccion).pack(side="right")
+
+        f_col_text = tk.Frame(self.tab_coleccion)
+        f_col_text.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+        self.text_coleccion = tk.Text(f_col_text, font=("Arial", 11), wrap="word", state="disabled")
+        self.text_coleccion.pack(fill="both", expand=True)
+
+        for t in [self.text_cp, self.text_cn, self.text_ref, self.text_coleccion]:
+            if t == self.text_coleccion:
+                t.tag_configure("normal", font=("Arial", 11), lmargin1=0, lmargin2=40)
+                t.tag_configure("italic", font=("Arial", 11, "italic"), lmargin1=0, lmargin2=40)
+            else:
+                t.tag_configure("normal", font=("Arial", 11))
+                t.tag_configure("italic", font=("Arial", 11, "italic"))
             t.bind("<Control-c>", lambda e, txt=t: self.copiar_atajo(txt))
             t.bind("<Control-C>", lambda e, txt=t: self.copiar_atajo(txt))
+
+    def cargar_coleccion(self):
+        if os.path.exists(self.archivo_datos):
+            try:
+                with open(self.archivo_datos, 'r', encoding='utf-8') as f:
+                    self.coleccion_referencias = json.load(f)
+                self.actualizar_coleccion_ui()
+            except Exception:
+                pass
+
+    def guardar_coleccion(self):
+        try:
+            with open(self.archivo_datos, 'w', encoding='utf-8') as f:
+                json.dump(self.coleccion_referencias, f, ensure_ascii=False, indent=4)
+        except Exception:
+            pass
 
     def copiar_atajo(self, text_widget):
         if text_widget == self.text_cp: self.copiar_texto(self.text_cp, self.ultima_cita_p)
         elif text_widget == self.text_cn: self.copiar_texto(self.text_cn, self.ultima_cita_n)
         elif text_widget == self.text_ref: self.copiar_texto(self.text_ref, self.ultima_ref)
+        elif text_widget == self.text_coleccion: self.copiar_coleccion()
         return "break"
 
     def seleccionar_archivo(self):
@@ -296,6 +339,8 @@ class CreadorAPA(tk.Tk):
         self.actualizar_texto(self.text_ref, self.ultima_ref)
         self.actualizar_texto(self.text_cp, self.ultima_cita_p)
         self.actualizar_texto(self.text_cn, self.ultima_cita_n)
+        
+        self.notebook.select(self.tab_actual)
 
     def actualizar_texto(self, widget, tuplas):
         widget.config(state="normal")
@@ -304,13 +349,60 @@ class CreadorAPA(tk.Tk):
             widget.insert(tk.END, texto, estilo)
         widget.config(state="disabled")
 
+    def anadir_a_coleccion(self):
+        if not self.ultima_ref:
+            return
+        
+        texto_plano = "".join([t[0] for t in self.ultima_ref]).strip().lower()
+        
+        ya_existe = any(ref["plano"] == texto_plano for ref in self.coleccion_referencias)
+        if ya_existe:
+            messagebox.showinfo("Aviso", "Esta referencia ya está en la colección.")
+            return
+
+        self.coleccion_referencias.append({
+            "plano": texto_plano,
+            "formato": self.ultima_ref
+        })
+        
+        self.coleccion_referencias.sort(key=lambda x: x["plano"])
+        self.actualizar_coleccion_ui()
+        self.guardar_coleccion()
+
+    def actualizar_coleccion_ui(self):
+        self.notebook.tab(self.tab_coleccion, text=f"Colección ({len(self.coleccion_referencias)})")
+        self.text_coleccion.config(state="normal")
+        self.text_coleccion.delete(1.0, tk.END)
+        for item in self.coleccion_referencias:
+            for texto, estilo in item["formato"]:
+                self.text_coleccion.insert(tk.END, texto, estilo)
+            self.text_coleccion.insert(tk.END, "\n\n")
+        self.text_coleccion.config(state="disabled")
+
+    def vaciar_coleccion(self):
+        if not self.coleccion_referencias:
+            return
+        if messagebox.askyesno("Confirmar", "¿Estás seguro de que deseas vaciar toda la colección de referencias?"):
+            self.coleccion_referencias = []
+            self.actualizar_coleccion_ui()
+            self.guardar_coleccion()
+
+    def copiar_coleccion(self):
+        if not self.coleccion_referencias:
+            return
+        todas_las_tuplas = []
+        for item in self.coleccion_referencias:
+            todas_las_tuplas.extend(item["formato"])
+            todas_las_tuplas.append(("\n\n", "normal"))
+        self.copiar_texto(self.text_coleccion, todas_las_tuplas)
+
     def copiar_texto(self, widget, tuplas):
         if not tuplas: return "break"
         texto_plano = ""
         html_fragment = ""
         for texto, estilo in tuplas:
             texto_plano += texto
-            t_html = texto.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            t_html = texto.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>")
             if estilo == "italic": html_fragment += f"<i>{t_html}</i>"
             else: html_fragment += t_html
         try:
